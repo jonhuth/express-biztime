@@ -12,21 +12,29 @@ router.get("/", async function (req, res, next) {
     return next(err);
   }
 
-})
+});
 
 router.get("/:code", async function (req, res, next) {
   try {
     const company = await db.query(
       `SELECT code, name, description FROM companies 
         WHERE code = $1`,
-      [req.params.code])
+      [req.params.code]);
     if (company.rows.length === 0) throw new ExpressError("valid code required", 404);
+
+    const invoices = await db.query(
+      `SELECT id
+        FROM invoices i 
+        where i.comp_code=$1`,
+        [req.params.code]
+    )
+    company.rows[0].invoices = invoices.rows.map(el => el.id);
 
     return res.json({ company: company.rows[0] })
   } catch (err) {
     return next(err);
   }
-})
+});
 
 router.post("/", async function (req, res, next) {
   try {
@@ -35,26 +43,22 @@ router.post("/", async function (req, res, next) {
     const company = await db.query(
       `SELECT code FROM companies 
         WHERE code = $1`,
-      [code])
+      [code]);
+    
       //expect company.rows to be empty
-      console.log(company.rows);
-      if (company.rows.length !== 0) throw new ExpressError("record already exists", 400);
-    const result = await db.query(
+    if (company.rows.length !== 0) throw new ExpressError("record already exists", 400);
+    
+      const result = await db.query(
       `INSERT INTO companies (code, name, description)
         VALUES ($1, $2, $3)
         RETURNING code, name, description`,
-      [code, name, description])
-
-
-
-    
+      [code, name, description]);
 
     return res.json({ company: result.rows[0] });
-
   } catch (err) {
-    next(err);
+    return next(err);
   }
-})
+});
 
 router.put("/:code", async function (req, res, next) {
   try {
@@ -75,13 +79,12 @@ router.put("/:code", async function (req, res, next) {
     return res.json({ company: result.rows[0] });
 
   } catch (err) {
-    next(err);
+    return next(err);
   }
-})
+});
 
 router.delete("/:code", async function (req, res, next) {
   try {
-
     const result = await db.query(
       `DELETE FROM companies WHERE code = $1
         RETURNING code`,
@@ -91,8 +94,8 @@ router.delete("/:code", async function (req, res, next) {
     return res.json({ status: "deleted" });
 
   } catch (err) {
-    next(err);
+    return next(err);
   }
-})
+});
 
 module.exports = router;
