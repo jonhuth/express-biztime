@@ -39,6 +39,7 @@ router.get("/:code", async function (req, res, next) {
 router.post("/", async function (req, res, next) {
   try {
     const { code, name, description } = req.body;
+    // let codeSlug = slugify(name, {lower: true});
 
     const company = await db.query(
       `SELECT code FROM companies 
@@ -54,7 +55,7 @@ router.post("/", async function (req, res, next) {
         RETURNING code, name, description`,
       [code, name, description]);
 
-    return res.json({ company: result.rows[0] });
+    return res.status(201).json({ company: result.rows[0] });
   } catch (err) {
     return next(err);
   }
